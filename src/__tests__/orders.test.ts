@@ -242,6 +242,136 @@ describe('Orders Routes', () => {
 
       expect(res.body.success).toBe(false);
     });
+
+    it('should update order with new items (replace all items)', async () => {
+      // First, create an order with items
+      const createRes = await request(app)
+        .post('/api/orders')
+        .send({
+          customerName: 'Order with Items',
+          items: [
+            {
+              productId: testProductId,
+              amount: 2,
+            },
+          ],
+        });
+
+      const orderIdWithItems = createRes.body.data.id;
+
+      // Now update with different items
+      const res = await request(app)
+        .put(`/api/orders/${orderIdWithItems}`)
+        .send({
+          items: [
+            {
+              productId: testProductId,
+              amount: 5,
+              notes: 'Updated item',
+            },
+          ],
+        })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.items.length).toBe(1);
+      expect(res.body.data.items[0].amount).toBe(5);
+      expect(res.body.data.items[0].notes).toBe('Updated item');
+    });
+
+    it('should update order with multiple new items', async () => {
+      // Create another product
+      const product2Result = await db.insert(products).values({
+        name: 'Second Product for Update',
+        price: 40000,
+      }).returning();
+      const testProductId2 = product2Result[0].id;
+
+      // Create order with one item
+      const createRes = await request(app)
+        .post('/api/orders')
+        .send({
+          customerName: 'Order to Expand',
+          items: [
+            {
+              productId: testProductId,
+              amount: 1,
+            },
+          ],
+        });
+
+      const orderIdToExpand = createRes.body.data.id;
+
+      // Update with multiple items
+      const res = await request(app)
+        .put(`/api/orders/${orderIdToExpand}`)
+        .send({
+          customerName: 'Updated with More Items',
+          items: [
+            {
+              productId: testProductId,
+              amount: 3,
+            },
+            {
+              productId: testProductId2,
+              amount: 2,
+              notes: 'Extra item',
+            },
+          ],
+        })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.customerName).toBe('Updated with More Items');
+      expect(res.body.data.items.length).toBe(2);
+    });
+
+    it('should update order info without changing items', async () => {
+      // Create order with items
+      const createRes = await request(app)
+        .post('/api/orders')
+        .send({
+          customerName: 'Original Customer',
+          items: [
+            {
+              productId: testProductId,
+              amount: 3,
+              notes: 'Original note',
+            },
+          ],
+        });
+
+      const orderIdKeepItems = createRes.body.data.id;
+      const originalItemId = createRes.body.data.items[0].id;
+
+      // Update only customer name and notes, not items
+      const res = await request(app)
+        .put(`/api/orders/${orderIdKeepItems}`)
+        .send({
+          customerName: 'Updated Customer',
+          notes: 'New order notes',
+        })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.customerName).toBe('Updated Customer');
+      expect(res.body.data.notes).toBe('New order notes');
+      expect(res.body.data.items.length).toBe(1);
+      expect(res.body.data.items[0].id).toBe(originalItemId);
+      expect(res.body.data.items[0].amount).toBe(3);
+      expect(res.body.data.items[0].notes).toBe('Original note');
+    });
+
+    it('should validate items when updating', async () => {
+      const res = await request(app)
+        .put(`/api/orders/${orderId}`)
+        .send({
+          items: [],
+        })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+    });
   });
 
   describe('DELETE /api/orders/:id', () => {

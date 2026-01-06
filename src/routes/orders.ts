@@ -360,6 +360,19 @@ router.post(
  *                 nullable: true
  *               notes:
  *                 type: string
+ *               items:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required: [productId, amount]
+ *                   properties:
+ *                     productId:
+ *                       type: integer
+ *                     amount:
+ *                       type: integer
+ *                     notes:
+ *                       type: string
  *           example:
  *             pickupDate: "2026-01-05"
  *     responses:
@@ -393,17 +406,56 @@ router.put(
 
       const data: UpdateOrderInput = req.body;
 
-      const result = await db
-        .update(orders)
-        .set(data)
-        .where(eq(orders.id, id))
-        .returning();
+      // Build update object with only provided fields
+      const updateData: Partial<typeof orders.$inferInsert> = {};
+      if (data.customerName !== undefined) updateData.customerName = data.customerName;
+      if (data.pickupDate !== undefined) updateData.pickupDate = data.pickupDate;
+      if (data.notes !== undefined) updateData.notes = data.notes;
 
-      if (result.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Order not found',
+      // Update order details only if there are fields to update
+      if (Object.keys(updateData).length > 0) {
+        const result = await db
+          .update(orders)
+          .set(updateData)
+          .where(eq(orders.id, id))
+          .returning();
+
+        if (result.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Order not found',
+          });
+        }
+      } else {
+        // If no order fields to update, just verify order exists
+        const exists = await db.query.orders.findFirst({
+          where: eq(orders.id, id),
         });
+
+        if (!exists) {
+          return res.status(404).json({
+            success: false,
+            message: 'Order not found',
+          });
+        }
+      }
+
+      // If items are provided, replace all items
+      if (data.items) {
+        // Delete existing items
+        await db.delete(orderItems).where(eq(orderItems.orderId, id));
+
+        // Insert new items
+        await db
+          .insert(orderItems)
+          .values(
+            data.items.map((item) => ({
+              orderId: id,
+              productId: item.productId,
+              amount: item.amount,
+              notes: item.notes,
+            }))
+          );
       }
 
       const completeOrder = await db.query.orders.findFirst({
