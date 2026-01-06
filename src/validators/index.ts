@@ -16,7 +16,7 @@ export const updateProductSchema = z.object({
 
 export const createOrderSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
-  pickupDate: z.coerce.date().optional(),
+  pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
   items: z.array(
     z.object({
       productId: z.number().int().positive('Product ID must be positive'),
@@ -27,7 +27,7 @@ export const createOrderSchema = z.object({
 
 export const updateOrderSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required').optional(),
-  pickupDate: z.union([z.coerce.date(), z.null()]).optional(),
+  pickupDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'), z.null()]).optional(),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

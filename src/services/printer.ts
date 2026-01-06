@@ -11,7 +11,7 @@ export type PrinterOrder = {
   id: number;
   customer: string;
   date: Date;
-  pickupDate?: Date | null;
+  pickupDate?: string | null;
   items: PrinterOrderItem[];
 };
 
@@ -24,12 +24,13 @@ function pad2(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-function formatPrintDate(date: Date): string {
-  const yyyy = date.getFullYear();
-  const mm = pad2(date.getMonth() + 1);
-  const dd = pad2(date.getDate());
-  const hh = pad2(date.getHours());
-  const min = pad2(date.getMinutes());
+function formatPrintDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const yyyy = d.getFullYear();
+  const mm = pad2(d.getMonth() + 1);
+  const dd = pad2(d.getDate());
+  const hh = pad2(d.getHours());
+  const min = pad2(d.getMinutes());
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 

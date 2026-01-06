@@ -5,6 +5,7 @@ import { exportSwaggerToJSON } from '../utils/swagger';
 const output_paths = [
   './swagger.json',
   '../frontend/swagger.json',
+  '../mobile/swagger.json',
 ]
 
 for (const outputPath of output_paths) {

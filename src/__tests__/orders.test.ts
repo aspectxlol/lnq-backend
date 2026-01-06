@@ -100,7 +100,7 @@ describe('Orders Routes', () => {
     });
 
     it('should create a new order with pickupDate', async () => {
-      const pickupDate = new Date('2026-01-04T10:30:00.000Z').toISOString();
+      const pickupDate = '2026-01-04';
 
       const res = await request(app)
         .post('/api/orders')
@@ -219,7 +219,7 @@ describe('Orders Routes', () => {
     });
 
     it('should update pickupDate', async () => {
-      const pickupDate = new Date('2026-01-05T12:00:00.000Z').toISOString();
+      const pickupDate = '2026-01-05';
 
       const res = await request(app)
         .put(`/api/orders/${orderId}`)

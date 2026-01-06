@@ -4,6 +4,7 @@ import { swaggerSpec } from './swagger';
 import productRoutes from './routes/products';
 import orderRoutes from './routes/orders';
 import printerRoutes from './routes/printer';
+import imageRoutes from './routes/images';
 import { errorHandler } from './middleware/errorHandler';
 import { checkMinIOConnection, initializeMinIO } from './services/minio';
 import { getSwaggerSpecJSON, getSwaggerSpecJSONString } from './utils/swagger';
@@ -72,6 +73,7 @@ app.get('/swagger.json', (req, res) => {
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/printer', printerRoutes);
+app.use('/api/images', imageRoutes);
 
 // Health check
 /**

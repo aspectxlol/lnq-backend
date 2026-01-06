@@ -35,7 +35,7 @@ const router: ExpressRouter = Router();
  *                         type: string
  *                       pickupDate:
  *                         type: string
- *                         format: date-time
+ *                         format: date
  *                         nullable: true
  *                       createdAt:
  *                         type: string
@@ -134,7 +134,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  *                       type: string
  *                     pickupDate:
  *                       type: string
- *                       format: date-time
+ *                       format: date
  *                       nullable: true
  *                     createdAt:
  *                       type: string
@@ -231,7 +231,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  *                 type: string
  *               pickupDate:
  *                 type: string
- *                 format: date-time
+ *                 format: date
  *                 nullable: true
  *               items:
  *                 type: array
@@ -341,10 +341,10 @@ router.post(
  *                 type: string
  *               pickupDate:
  *                 type: string
- *                 format: date-time
+ *                 format: date
  *                 nullable: true
  *           example:
- *             pickupDate: "2026-01-05T08:00:00.000Z"
+ *             pickupDate: "2026-01-05"
  *     responses:
  *       200:
  *         description: Order updated successfully
