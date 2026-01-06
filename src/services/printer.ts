@@ -12,6 +12,7 @@ export type PrinterOrder = {
   customer: string;
   date: Date;
   pickupDate?: string | null;
+  notes?: string | null;
   items: PrinterOrderItem[];
 };
 
@@ -56,6 +57,12 @@ export function buildPrinterOutput(order: PrinterOrder): string {
 
   const dateToPrint = order.pickupDate ?? order.date;
   out += formatPrintDate(dateToPrint) + LF + LF;
+
+  // === ORDER NOTES ===
+  if (order.notes) {
+    out += ESC + 'a' + '\x00'; // left align
+    out += 'NOTE: ' + order.notes + LF + LF;
+  }
 
   // === ITEMS ===
   out += ESC + 'a' + '\x00';

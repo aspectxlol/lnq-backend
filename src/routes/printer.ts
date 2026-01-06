@@ -96,10 +96,12 @@ router.post('/orders/:id/print', async (req: Request, res: Response, next: NextF
       customer: order.customerName,
       date: order.createdAt ?? new Date(),
       pickupDate: order.pickupDate ?? null,
+      notes: order.notes ?? null,
       items: order.items.map((item) => ({
         name: item.product?.name ?? `Product ${item.productId}`,
         quantity: item.amount,
         price: item.product?.price ?? 0,
+        notes: item.notes ? [item.notes] : undefined,
       })),
     };
 

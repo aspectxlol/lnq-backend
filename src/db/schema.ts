@@ -14,6 +14,7 @@ export const orders = pgTable('orders', {
   id: serial('id').primaryKey(),
   customerName: varchar('customer_name', { length: 255 }).notNull(),
   pickupDate: date('pickup_date'),
+  notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -26,6 +27,7 @@ export const orderItems = pgTable('order_items', {
     .notNull()
     .references(() => products.id),
   amount: integer('amount').notNull(),
+  notes: text('notes'),
 });
 
 // Relations

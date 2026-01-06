@@ -37,6 +37,9 @@ const router: ExpressRouter = Router();
  *                         type: string
  *                         format: date
  *                         nullable: true
+ *                       notes:
+ *                         type: string
+ *                         nullable: true
  *                       createdAt:
  *                         type: string
  *                         format: date-time
@@ -53,6 +56,9 @@ const router: ExpressRouter = Router();
  *                               type: integer
  *                             amount:
  *                               type: integer
+ *                             notes:
+ *                               type: string
+ *                               nullable: true
  *                             product:
  *                               type: object
  *                               nullable: true
@@ -69,12 +75,14 @@ const router: ExpressRouter = Router();
  *                 - id: 10
  *                   customerName: "Alice"
  *                   pickupDate: null
+ *                   notes: null
  *                   createdAt: "2026-01-04T00:00:00.000Z"
  *                   items:
  *                     - id: 100
  *                       orderId: 10
  *                       productId: 1
  *                       amount: 2
+ *                       notes: null
  *                       product:
  *                         id: 1
  *                         name: "Espresso"
@@ -232,6 +240,8 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  *               pickupDate:
  *                 type: string
  *                 format: date
+ *               notes:
+ *                 type: string
  *                 nullable: true
  *               items:
  *                 type: array
@@ -244,12 +254,16 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  *                       type: integer
  *                     amount:
  *                       type: integer
+ *                     notes:
+ *                       type: string
  *           example:
+ *             notes: "Please call when ready"
  *             customerName: "Alice"
  *             pickupDate: null
  *             items:
  *               - productId: 1
  *                 amount: 2
+ *                 notes: "Extra hot"
  *     responses:
  *       201:
  *         description: Order created successfully
@@ -292,6 +306,7 @@ router.post(
             orderId,
             productId: item.productId,
             amount: item.amount,
+            notes: item.notes,
           }))
         )
         .returning();
@@ -343,6 +358,8 @@ router.post(
  *                 type: string
  *                 format: date
  *                 nullable: true
+ *               notes:
+ *                 type: string
  *           example:
  *             pickupDate: "2026-01-05"
  *     responses:
