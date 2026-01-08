@@ -6,6 +6,7 @@ const output_paths = [
   './swagger.json',
   '../frontend/swagger.json',
   '../mobile/swagger.json',
+  '../Bot/swagger.json',
 ]
 
 for (const outputPath of output_paths) {
