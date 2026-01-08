@@ -307,16 +307,21 @@ router.post(
         .values(
           await Promise.all(
             data.items.map(async (item) => {
-              // Get current price from products table
-              const product = await db.query.products.findFirst({
-                where: eq(products.id, item.productId),
-              });
+              let priceAtSale;
+              if ('priceAtSale' in item && typeof item.priceAtSale === 'number') {
+                priceAtSale = item.priceAtSale;
+              } else {
+                const product = await db.query.products.findFirst({
+                  where: eq(products.id, item.productId),
+                });
+                priceAtSale = product?.price ?? null;
+              }
               return {
                 orderId,
                 productId: item.productId,
                 amount: item.amount,
                 notes: item.notes,
-                priceAtSale: product?.price ?? null,
+                priceAtSale,
               };
             })
           )

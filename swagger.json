@@ -266,6 +266,10 @@
                         },
                         "notes": {
                           "type": "string"
+                        },
+                        "priceAtSale": {
+                          "type": "integer",
+                          "description": "Price at sale (optional, overrides current product price)"
                         }
                       }
                     }

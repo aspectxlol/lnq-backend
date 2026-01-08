@@ -98,6 +98,47 @@ describe('Orders Routes', () => {
   });
 
   describe('POST /api/orders', () => {
+        it('should use priceAtSale if provided, otherwise use product price', async () => {
+          // Create a product with a known price
+          const productResult = await db.insert(products).values({
+            name: 'Override Price Product',
+            price: 12345,
+          }).returning();
+          const overrideProductId = productResult[0].id;
+
+          // Provide priceAtSale explicitly
+          const res1 = await request(app)
+            .post('/api/orders')
+            .send({
+              customerName: 'Override Price Customer',
+              items: [
+                {
+                  productId: overrideProductId,
+                  amount: 1,
+                  priceAtSale: 99999,
+                },
+              ],
+            })
+            .expect(201);
+          expect(res1.body.success).toBe(true);
+          expect(res1.body.data.items[0].priceAtSale).toBe(99999);
+
+          // Do not provide priceAtSale, should use product price
+          const res2 = await request(app)
+            .post('/api/orders')
+            .send({
+              customerName: 'Default Price Customer',
+              items: [
+                {
+                  productId: overrideProductId,
+                  amount: 1,
+                },
+              ],
+            })
+            .expect(201);
+          expect(res2.body.success).toBe(true);
+          expect(res2.body.data.items[0].priceAtSale).toBe(12345);
+        });
     it('should create a new order with items', async () => {
       const res = await request(app)
         .post('/api/orders')
