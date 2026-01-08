@@ -1,3 +1,38 @@
+// Utility to remove null fields from order items for correct API shape
+function cleanOrderItem(item: any) {
+  const cleaned: any = { ...item };
+  // Remove fields that are null (but keep 0 and false)
+  Object.keys(cleaned).forEach((key) => {
+    if (cleaned[key] === null) {
+      delete cleaned[key];
+    }
+  });
+  // For custom items, ensure customPrice is always a number (default 0 if missing)
+  if (cleaned.itemType === 'custom') {
+    if (typeof cleaned.customPrice !== 'number') {
+      cleaned.customPrice = 0;
+    }
+  }
+  // Recursively clean product if present
+  if (cleaned.product && typeof cleaned.product === 'object') {
+    Object.keys(cleaned.product).forEach((key) => {
+      if (cleaned.product[key] === null) {
+        delete cleaned.product[key];
+      }
+    });
+  }
+  return cleaned;
+}
+
+function cleanOrder(order: any) {
+  if (!order) return order;
+  return {
+    ...order,
+    items: Array.isArray(order.items)
+      ? order.items.map(cleanOrderItem)
+      : [],
+  };
+}
 import { Router, Request, Response, NextFunction, Router as ExpressRouter } from 'express';
 import { db } from '../db';
 import { orders, orderItems, products } from '../db/schema';
@@ -102,7 +137,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     res.json({
       success: true,
-      data: allOrders,
+      data: allOrders.map(cleanOrder),
     });
   } catch (error) {
     next(error);
@@ -214,7 +249,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     res.json({
       success: true,
-      data: order,
+      data: cleanOrder(order),
     });
   } catch (error) {
     next(error);
@@ -247,26 +282,46 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  *                 type: array
  *                 minItems: 1
  *                 items:
- *                   type: object
- *                   required: [productId, amount]
- *                   properties:
- *                     productId:
- *                       type: integer
- *                     amount:
- *                       type: integer
- *                     notes:
- *                       type: string
- *                     priceAtSale:
- *                       type: integer
- *                       description: Price at sale (optional, overrides current product price)
+ *                   oneOf:
+ *                     - type: object
+ *                       required: [itemType, productId, amount]
+ *                       properties:
+ *                         itemType:
+ *                           type: string
+ *                           enum: [product]
+ *                         productId:
+ *                           type: integer
+ *                         amount:
+ *                           type: integer
+ *                         notes:
+ *                           type: string
+ *                         priceAtSale:
+ *                           type: integer
+ *                           description: Price at sale (optional, overrides current product price)
+ *                     - type: object
+ *                       required: [itemType, customName, customPrice]
+ *                       properties:
+ *                         itemType:
+ *                           type: string
+ *                           enum: [custom]
+ *                         customName:
+ *                           type: string
+ *                         customPrice:
+ *                           type: integer
+ *                         notes:
+ *                           type: string
  *           example:
  *             notes: "Please call when ready"
  *             customerName: "Alice"
  *             pickupDate: null
  *             items:
- *               - productId: 1
+ *               - itemType: product
+ *                 productId: 1
  *                 amount: 2
  *                 notes: "Extra hot"
+ *               - itemType: custom
+ *                 customName: "Ongkos Kirim"
+ *                 customPrice: 10000
  *     responses:
  *       201:
  *         description: Order created successfully
@@ -307,22 +362,46 @@ router.post(
         .values(
           await Promise.all(
             data.items.map(async (item) => {
-              let priceAtSale;
-              if ('priceAtSale' in item && item.priceAtSale !== undefined && item.priceAtSale !== null && !isNaN(item.priceAtSale)) {
-                priceAtSale = item.priceAtSale;
+              if (item.itemType === 'product') {
+              // Accept priceAtSale=0 as valid
+                let priceAtSale;
+                if (
+                  'priceAtSale' in item &&
+                  item.priceAtSale !== undefined &&
+                  item.priceAtSale !== null &&
+                  !isNaN(item.priceAtSale)
+                ) {
+                  priceAtSale = item.priceAtSale;
+                } else {
+                  const product = await db.query.products.findFirst({
+                    where: eq(products.id, item.productId),
+                  });
+                  priceAtSale = product?.price ?? null;
+                }
+                return {
+                  orderId,
+                  itemType: 'product',
+                  productId: item.productId,
+                  amount: item.amount,
+                  notes: item.notes,
+                  priceAtSale,
+                  customName: null,
+                  customPrice: null,
+                };
+              } else if (item.itemType === 'custom') {
+                return {
+                  orderId,
+                  itemType: 'custom',
+                  productId: null,
+                  amount: null,
+                  notes: item.notes,
+                  priceAtSale: item.customPrice,
+                  customName: item.customName,
+                  customPrice: item.customPrice,
+                };
               } else {
-                const product = await db.query.products.findFirst({
-                  where: eq(products.id, item.productId),
-                });
-                priceAtSale = product?.price ?? null;
+                throw new ValidationError(400, { items: 'Invalid item type' });
               }
-              return {
-                orderId,
-                productId: item.productId,
-                amount: item.amount,
-                notes: item.notes,
-                priceAtSale,
-              };
             })
           )
         )
@@ -341,7 +420,7 @@ router.post(
 
       res.status(201).json({
         success: true,
-        data: completeOrder,
+        data: cleanOrder(completeOrder),
       });
     } catch (error) {
       next(error);
@@ -381,17 +460,42 @@ router.post(
  *                 type: array
  *                 minItems: 1
  *                 items:
- *                   type: object
- *                   required: [productId, amount]
- *                   properties:
- *                     productId:
- *                       type: integer
- *                     amount:
- *                       type: integer
- *                     notes:
- *                       type: string
+ *                   oneOf:
+ *                     - type: object
+ *                       required: [itemType, productId, amount]
+ *                       properties:
+ *                         itemType:
+ *                           type: string
+ *                           enum: [product]
+ *                         productId:
+ *                           type: integer
+ *                         amount:
+ *                           type: integer
+ *                         notes:
+ *                           type: string
+ *                         priceAtSale:
+ *                           type: integer
+ *                     - type: object
+ *                       required: [itemType, customName, customPrice]
+ *                       properties:
+ *                         itemType:
+ *                           type: string
+ *                           enum: [custom]
+ *                         customName:
+ *                           type: string
+ *                         customPrice:
+ *                           type: integer
+ *                         notes:
+ *                           type: string
  *           example:
  *             pickupDate: "2026-01-05"
+ *             items:
+ *               - itemType: product
+ *                 productId: 1
+ *                 amount: 2
+ *               - itemType: custom
+ *                 customName: "Ongkos Kirim"
+ *                 customPrice: 10000
  *     responses:
  *       200:
  *         description: Order updated successfully
@@ -468,29 +572,50 @@ router.put(
           .values(
             await Promise.all(
               data.items.map(async (item) => {
-                let priceAtSale: number | null | undefined;
-                if (
-                  'priceAtSale' in item &&
-                  typeof item.priceAtSale === 'number' &&
-                  !isNaN(item.priceAtSale)
-                ) {
-                  priceAtSale = item.priceAtSale;
+                if (item.itemType === 'product') {
+                  // Accept priceAtSale=0 as valid
+                  let priceAtSale;
+                  if (
+                    'priceAtSale' in item &&
+                    item.priceAtSale !== undefined &&
+                    item.priceAtSale !== null &&
+                    !isNaN(item.priceAtSale)
+                  ) {
+                    priceAtSale = item.priceAtSale;
+                  } else {
+                    const product = await db.query.products.findFirst({
+                      where: eq(products.id, item.productId),
+                    });
+                    priceAtSale = product?.price ?? null;
+                  }
+                  return {
+                    orderId: id,
+                    itemType: 'product',
+                    productId: item.productId,
+                    amount: item.amount,
+                    notes: item.notes,
+                    priceAtSale,
+                    customName: null,
+                    customPrice: null,
+                  };
+                } else if (item.itemType === 'custom') {
+                  return {
+                    orderId: id,
+                    itemType: 'custom',
+                    productId: null,
+                    amount: null,
+                    notes: item.notes,
+                    priceAtSale: item.customPrice,
+                    customName: item.customName,
+                    customPrice: item.customPrice,
+                  };
                 } else {
-                  const product = await db.query.products.findFirst({
-                    where: eq(products.id, item.productId),
-                  });
-                  priceAtSale = typeof product?.price === 'number' ? product.price : null;
+                  throw new ValidationError(400, { items: 'Invalid item type' });
                 }
-                return {
-                  orderId: id,
-                  productId: item.productId,
-                  amount: item.amount,
-                  notes: item.notes,
-                  priceAtSale,
-                };
               })
             )
           );
+
       }
 
       const completeOrder = await db.query.orders.findFirst({
@@ -506,7 +631,7 @@ router.put(
 
       res.json({
         success: true,
-        data: completeOrder,
+        data: cleanOrder(completeOrder),
       });
     } catch (error) {
       next(error);
@@ -558,6 +683,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 
     if (result.length === 0) {
       return res.status(404).json({
+        // Debug logging for inserted items
         success: false,
         message: 'Order not found',
       });

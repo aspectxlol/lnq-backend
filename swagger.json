@@ -252,26 +252,62 @@
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                      "type": "object",
-                      "required": [
-                        "productId",
-                        "amount"
-                      ],
-                      "properties": {
-                        "productId": {
-                          "type": "integer"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "itemType",
+                            "productId",
+                            "amount"
+                          ],
+                          "properties": {
+                            "itemType": {
+                              "type": "string",
+                              "enum": [
+                                "product"
+                              ]
+                            },
+                            "productId": {
+                              "type": "integer"
+                            },
+                            "amount": {
+                              "type": "integer"
+                            },
+                            "notes": {
+                              "type": "string"
+                            },
+                            "priceAtSale": {
+                              "type": "integer",
+                              "description": "Price at sale (optional, overrides current product price)"
+                            }
+                          }
                         },
-                        "amount": {
-                          "type": "integer"
-                        },
-                        "notes": {
-                          "type": "string"
-                        },
-                        "priceAtSale": {
-                          "type": "integer",
-                          "description": "Price at sale (optional, overrides current product price)"
+                        {
+                          "type": "object",
+                          "required": [
+                            "itemType",
+                            "customName",
+                            "customPrice"
+                          ],
+                          "properties": {
+                            "itemType": {
+                              "type": "string",
+                              "enum": [
+                                "custom"
+                              ]
+                            },
+                            "customName": {
+                              "type": "string"
+                            },
+                            "customPrice": {
+                              "type": "integer"
+                            },
+                            "notes": {
+                              "type": "string"
+                            }
+                          }
                         }
-                      }
+                      ]
                     }
                   }
                 }
@@ -282,9 +318,15 @@
                 "pickupDate": null,
                 "items": [
                   {
+                    "itemType": "product",
                     "productId": 1,
                     "amount": 2,
                     "notes": "Extra hot"
+                  },
+                  {
+                    "itemType": "custom",
+                    "customName": "Ongkos Kirim",
+                    "customPrice": 10000
                   }
                 ]
               }
@@ -478,28 +520,79 @@
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                      "type": "object",
-                      "required": [
-                        "productId",
-                        "amount"
-                      ],
-                      "properties": {
-                        "productId": {
-                          "type": "integer"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "itemType",
+                            "productId",
+                            "amount"
+                          ],
+                          "properties": {
+                            "itemType": {
+                              "type": "string",
+                              "enum": [
+                                "product"
+                              ]
+                            },
+                            "productId": {
+                              "type": "integer"
+                            },
+                            "amount": {
+                              "type": "integer"
+                            },
+                            "notes": {
+                              "type": "string"
+                            },
+                            "priceAtSale": {
+                              "type": "integer"
+                            }
+                          }
                         },
-                        "amount": {
-                          "type": "integer"
-                        },
-                        "notes": {
-                          "type": "string"
+                        {
+                          "type": "object",
+                          "required": [
+                            "itemType",
+                            "customName",
+                            "customPrice"
+                          ],
+                          "properties": {
+                            "itemType": {
+                              "type": "string",
+                              "enum": [
+                                "custom"
+                              ]
+                            },
+                            "customName": {
+                              "type": "string"
+                            },
+                            "customPrice": {
+                              "type": "integer"
+                            },
+                            "notes": {
+                              "type": "string"
+                            }
+                          }
                         }
-                      }
+                      ]
                     }
                   }
                 }
               },
               "example": {
-                "pickupDate": "2026-01-05"
+                "pickupDate": "2026-01-05",
+                "items": [
+                  {
+                    "itemType": "product",
+                    "productId": 1,
+                    "amount": 2
+                  },
+                  {
+                    "itemType": "custom",
+                    "customName": "Ongkos Kirim",
+                    "customPrice": 10000
+                  }
+                ]
               }
             }
           }

@@ -23,12 +23,13 @@ export const orderItems = pgTable('order_items', {
   orderId: integer('order_id')
     .notNull()
     .references(() => orders.id, { onDelete: 'cascade' }),
-  productId: integer('product_id')
-    .notNull()
-    .references(() => products.id),
-  amount: integer('amount').notNull(),
+  itemType: varchar('item_type', { length: 16 }).notNull().default('product'),
+  productId: integer('product_id').references(() => products.id), // nullable for custom
+  amount: integer('amount'), // nullable for custom
   notes: text('notes'),
   priceAtSale: integer('price_at_sale'), // Price at the time of sale
+  customName: varchar('custom_name', { length: 255 }), // for custom items
+  customPrice: integer('custom_price'), // for custom items
 });
 
 // Relations

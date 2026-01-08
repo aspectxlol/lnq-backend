@@ -97,12 +97,23 @@ router.post('/orders/:id/print', async (req: Request, res: Response, next: NextF
       date: order.createdAt ?? new Date(),
       pickupDate: order.pickupDate ?? null,
       notes: order.notes ?? null,
-      items: order.items.map((item) => ({
-        name: item.product?.name ?? `Product ${item.productId}`,
-        quantity: item.amount,
-        price: item.product?.price ?? 0,
-        notes: item.notes ? [item.notes] : undefined,
-      })),
+      items: order.items.map((item) => {
+        if (item.itemType === 'custom') {
+          return {
+            name: item.customName ?? 'Custom Item',
+            quantity: 1,
+            price: item.priceAtSale ?? item.customPrice ?? 0,
+            notes: item.notes ? [item.notes] : undefined,
+          };
+        } else {
+          return {
+            name: item.product?.name ?? `Product ${item.productId}`,
+            quantity: item.amount ?? 1,
+            price: item.priceAtSale ?? item.product?.price ?? 0,
+            notes: item.notes ? [item.notes] : undefined,
+          };
+        }
+      }),
     };
 
     const devicePath = process.env.PRINTER_DEVICE_PATH || '/dev/usb/lp0';

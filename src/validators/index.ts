@@ -14,17 +14,27 @@ export const updateProductSchema = z.object({
   imageId: z.string().optional(),
 });
 
+const productItemSchema = z.object({
+  itemType: z.literal('product'),
+  productId: z.number().int().positive('Product ID must be positive'),
+  amount: z.number().int().positive('Amount must be positive'),
+  notes: z.string().optional(),
+  priceAtSale: z.number().optional(),
+});
+
+const customItemSchema = z.object({
+  itemType: z.literal('custom'),
+  customName: z.string().min(1, 'Custom item name is required'),
+  customPrice: z.number().int().nonnegative('Custom price must be zero or positive'),
+  notes: z.string().optional(),
+});
+
 export const createOrderSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
   pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
   notes: z.string().optional(),
   items: z.array(
-    z.object({
-      productId: z.number().int().positive('Product ID must be positive'),
-      amount: z.number().int().positive('Amount must be positive'),
-      notes: z.string().optional(),
-      priceAtSale: z.number().optional(),
-    })
+    z.discriminatedUnion('itemType', [productItemSchema, customItemSchema])
   ).min(1, 'At least one item is required'),
 });
 
@@ -33,12 +43,7 @@ export const updateOrderSchema = z.object({
   pickupDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'), z.null()]).optional(),
   notes: z.string().optional(),
   items: z.array(
-    z.object({
-      productId: z.number().int().positive('Product ID must be positive'),
-      amount: z.number().int().positive('Amount must be positive'),
-      notes: z.string().optional(),
-      priceAtSale: z.number().optional(),
-    })
+    z.discriminatedUnion('itemType', [productItemSchema, customItemSchema])
   ).min(1, 'At least one item is required').optional(),
 });
 

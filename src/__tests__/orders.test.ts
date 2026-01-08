@@ -35,9 +35,21 @@ describe('Orders Routes', () => {
         expect(Array.isArray(order.items)).toBe(true);
         for (const item of order.items) {
           expect(typeof item.id).toBe('number');
-          expect(typeof item.productId).toBe('number');
-          expect(typeof item.amount).toBe('number');
-          expect(['number', 'object'].includes(typeof item.priceAtSale)).toBe(true);
+          if (item.itemType === 'product') {
+            expect(typeof item.productId).toBe('number');
+            expect(typeof item.amount).toBe('number');
+            expect(
+              typeof item.priceAtSale === 'number' || typeof item.priceAtSale === 'undefined'
+            ).toBe(true);
+            expect(item.customName).toBeUndefined();
+            expect(item.customPrice).toBeUndefined();
+          } else if (item.itemType === 'custom') {
+            expect(typeof item.customName).toBe('string');
+            expect(typeof item.customPrice).toBe('number');
+            expect(item.productId).toBeUndefined();
+            expect(item.amount).toBeUndefined();
+            expect(typeof item.priceAtSale).toBe('number');
+          }
         }
       }
     });
@@ -72,9 +84,21 @@ describe('Orders Routes', () => {
       expect(Array.isArray(res.body.data.items)).toBe(true);
       for (const item of res.body.data.items) {
         expect(typeof item.id).toBe('number');
-        expect(typeof item.productId).toBe('number');
-        expect(typeof item.amount).toBe('number');
-        expect(['number', 'object'].includes(typeof item.priceAtSale)).toBe(true);
+        if (item.itemType === 'product') {
+          expect(typeof item.productId).toBe('number');
+          expect(typeof item.amount).toBe('number');
+          expect(
+            typeof item.priceAtSale === 'number' || typeof item.priceAtSale === 'undefined'
+          ).toBe(true);
+          expect(item.customName).toBeUndefined();
+          expect(item.customPrice).toBeUndefined();
+        } else if (item.itemType === 'custom') {
+          expect(typeof item.customName).toBe('string');
+          expect(typeof item.customPrice).toBe('number');
+          expect(item.productId).toBeUndefined();
+          expect(item.amount).toBeUndefined();
+          expect(typeof item.priceAtSale).toBe('number');
+        }
       }
     });
 
@@ -98,6 +122,74 @@ describe('Orders Routes', () => {
   });
 
   describe('POST /api/orders', () => {
+    it('should create an order with a custom (non-product) item', async () => {
+      const res = await request(app)
+        .post('/api/orders')
+        .send({
+          customerName: 'Custom Charge Customer',
+          items: [
+            {
+              itemType: 'custom',
+              customName: 'Ongkos Kirim',
+              customPrice: 15000,
+              notes: 'Delivery fee',
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.items.length).toBe(1);
+      const item = res.body.data.items[0];
+      expect(item.itemType).toBe('custom');
+      expect(item.customName).toBe('Ongkos Kirim');
+      expect(item.customPrice).toBe(15000);
+      expect(item.notes).toBe('Delivery fee');
+      expect(item.productId).toBeUndefined();
+      expect(item.amount).toBeUndefined();
+    });
+
+    it('should create an order with both product and custom items', async () => {
+      // Create a product
+      const productResult = await db.insert(products).values({
+        name: 'Combo Product',
+        price: 50000,
+      }).returning();
+      const comboProductId = productResult[0].id;
+
+      const res = await request(app)
+        .post('/api/orders')
+        .send({
+          customerName: 'Combo Customer',
+          items: [
+            {
+              itemType: 'product',
+              productId: comboProductId,
+              amount: 2,
+              priceAtSale: 45000,
+            },
+            {
+              itemType: 'custom',
+              customName: 'Ongkos Kirim',
+              customPrice: 10000,
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.items.length).toBe(2);
+      const [prod, custom] = res.body.data.items[0].itemType === 'product'
+        ? [res.body.data.items[0], res.body.data.items[1]]
+        : [res.body.data.items[1], res.body.data.items[0]];
+      expect(prod.itemType).toBe('product');
+      expect(prod.productId).toBe(comboProductId);
+      expect(prod.amount).toBe(2);
+      expect(prod.priceAtSale).toBe(45000);
+      expect(custom.itemType).toBe('custom');
+      expect(custom.customName).toBe('Ongkos Kirim');
+      expect(custom.customPrice).toBe(10000);
+    });
     it('should create an order with item priceAtSale = 0 and persist it', async () => {
       // Create a product with a non-zero price
       const productResult = await db.insert(products).values({
@@ -113,6 +205,7 @@ describe('Orders Routes', () => {
           customerName: 'Zero Price Customer',
           items: [
             {
+              itemType: 'product',
               productId: zeroPriceProductId,
               amount: 1,
               priceAtSale: 0,
@@ -149,6 +242,7 @@ describe('Orders Routes', () => {
               customerName: 'Override Price Customer',
               items: [
                 {
+                  itemType: 'product',
                   productId: overrideProductId,
                   amount: 1,
                   priceAtSale: 99999,
@@ -166,6 +260,7 @@ describe('Orders Routes', () => {
               customerName: 'Default Price Customer',
               items: [
                 {
+                  itemType: 'product',
                   productId: overrideProductId,
                   amount: 1,
                 },
@@ -182,6 +277,7 @@ describe('Orders Routes', () => {
           customerName: 'New Customer',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 3,
             },
@@ -207,6 +303,7 @@ describe('Orders Routes', () => {
           pickupDate,
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 1,
             },
@@ -234,10 +331,12 @@ describe('Orders Routes', () => {
           customerName: 'Multi Item Customer',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 2,
             },
             {
+              itemType: 'product',
               productId: testProductId2,
               amount: 1,
             },
@@ -258,6 +357,7 @@ describe('Orders Routes', () => {
         .send({
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 1,
             },
@@ -289,6 +389,7 @@ describe('Orders Routes', () => {
           customerName: 'Invalid Amount',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: -1,
             },
@@ -359,6 +460,7 @@ describe('Orders Routes', () => {
           customerName: 'Order with Items',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 2,
             },
@@ -373,6 +475,7 @@ describe('Orders Routes', () => {
         .send({
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 5,
               notes: 'Updated item',
@@ -404,6 +507,7 @@ describe('Orders Routes', () => {
           customerName: 'Order to Expand',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 1,
             },
@@ -419,10 +523,12 @@ describe('Orders Routes', () => {
           customerName: 'Updated with More Items',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 3,
             },
             {
+              itemType: 'product',
               productId: testProductId2,
               amount: 2,
               notes: 'Extra item',
@@ -447,6 +553,7 @@ describe('Orders Routes', () => {
           customerName: 'Original Customer',
           items: [
             {
+              itemType: 'product',
               productId: testProductId,
               amount: 3,
               notes: 'Original note',
