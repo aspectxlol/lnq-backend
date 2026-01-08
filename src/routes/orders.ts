@@ -308,7 +308,7 @@ router.post(
           await Promise.all(
             data.items.map(async (item) => {
               let priceAtSale;
-              if ('priceAtSale' in item && typeof item.priceAtSale === 'number') {
+              if ('priceAtSale' in item && item.priceAtSale !== undefined && item.priceAtSale !== null && !isNaN(item.priceAtSale)) {
                 priceAtSale = item.priceAtSale;
               } else {
                 const product = await db.query.products.findFirst({
@@ -468,14 +468,18 @@ router.put(
           .values(
             await Promise.all(
               data.items.map(async (item) => {
-                let priceAtSale;
-                if ('priceAtSale' in item && typeof item.priceAtSale === 'number') {
+                let priceAtSale: number | null | undefined;
+                if (
+                  'priceAtSale' in item &&
+                  typeof item.priceAtSale === 'number' &&
+                  !isNaN(item.priceAtSale)
+                ) {
                   priceAtSale = item.priceAtSale;
                 } else {
                   const product = await db.query.products.findFirst({
                     where: eq(products.id, item.productId),
                   });
-                  priceAtSale = product?.price ?? null;
+                  priceAtSale = typeof product?.price === 'number' ? product.price : null;
                 }
                 return {
                   orderId: id,

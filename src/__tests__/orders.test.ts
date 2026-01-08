@@ -98,6 +98,42 @@ describe('Orders Routes', () => {
   });
 
   describe('POST /api/orders', () => {
+    it('should create an order with item priceAtSale = 0 and persist it', async () => {
+      // Create a product with a non-zero price
+      const productResult = await db.insert(products).values({
+        name: 'Zero Price Test Product',
+        price: 100000,
+      }).returning();
+      const zeroPriceProductId = productResult[0].id;
+
+      // Create order with priceAtSale = 0
+      const res = await request(app)
+        .post('/api/orders')
+        .send({
+          customerName: 'Zero Price Customer',
+          items: [
+            {
+              productId: zeroPriceProductId,
+              amount: 1,
+              priceAtSale: 0,
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.items.length).toBe(1);
+      expect(res.body.data.items[0].priceAtSale).toBe(0);
+
+      // Fetch the order again and verify priceAtSale is still 0
+      const orderId = res.body.data.id;
+      const getRes = await request(app)
+        .get(`/api/orders/${orderId}`)
+        .expect(200);
+      expect(getRes.body.success).toBe(true);
+      expect(getRes.body.data.items.length).toBe(1);
+      expect(getRes.body.data.items[0].priceAtSale).toBe(0);
+    });
         it('should use priceAtSale if provided, otherwise use product price', async () => {
           // Create a product with a known price
           const productResult = await db.insert(products).values({

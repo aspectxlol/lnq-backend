@@ -37,6 +37,7 @@ export const updateOrderSchema = z.object({
       productId: z.number().int().positive('Product ID must be positive'),
       amount: z.number().int().positive('Amount must be positive'),
       notes: z.string().optional(),
+      priceAtSale: z.number().optional(),
     })
   ).min(1, 'At least one item is required').optional(),
 });
