@@ -28,6 +28,7 @@ export const orderItems = pgTable('order_items', {
     .references(() => products.id),
   amount: integer('amount').notNull(),
   notes: text('notes'),
+  priceAtSale: integer('price_at_sale'), // Price at the time of sale
 });
 
 // Relations

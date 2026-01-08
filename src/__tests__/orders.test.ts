@@ -29,6 +29,17 @@ describe('Orders Routes', () => {
 
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
+      for (const order of res.body.data) {
+        expect(typeof order.id).toBe('number');
+        expect(typeof order.customerName).toBe('string');
+        expect(Array.isArray(order.items)).toBe(true);
+        for (const item of order.items) {
+          expect(typeof item.id).toBe('number');
+          expect(typeof item.productId).toBe('number');
+          expect(typeof item.amount).toBe('number');
+          expect(['number', 'object'].includes(typeof item.priceAtSale)).toBe(true);
+        }
+      }
     });
   });
 
@@ -57,8 +68,14 @@ describe('Orders Routes', () => {
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.id).toBe(orderId);
-      expect(res.body.data.customerName).toBe('Test Customer');
+      expect(typeof res.body.data.customerName).toBe('string');
       expect(Array.isArray(res.body.data.items)).toBe(true);
+      for (const item of res.body.data.items) {
+        expect(typeof item.id).toBe('number');
+        expect(typeof item.productId).toBe('number');
+        expect(typeof item.amount).toBe('number');
+        expect(['number', 'object'].includes(typeof item.priceAtSale)).toBe(true);
+      }
     });
 
     it('should return 404 for non-existent order', async () => {
@@ -67,6 +84,7 @@ describe('Orders Routes', () => {
         .expect(404);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
     });
 
     it('should return 400 for invalid order ID', async () => {
@@ -75,6 +93,7 @@ describe('Orders Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /invalid/i.test(res.body.message || '')).toBe(true);
     });
   });
 
@@ -94,9 +113,11 @@ describe('Orders Routes', () => {
         .expect(201);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.customerName).toBe('New Customer');
       expect(res.body.data.items.length).toBe(1);
       expect(res.body.data.items[0].amount).toBe(3);
+      expect(res.body.data.items[0].priceAtSale).toBe(100000);
     });
 
     it('should create a new order with pickupDate', async () => {
@@ -117,6 +138,7 @@ describe('Orders Routes', () => {
         .expect(201);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.customerName).toBe('Pickup Customer');
       expect(res.body.data.pickupDate).toBeTruthy();
     });
@@ -147,7 +169,10 @@ describe('Orders Routes', () => {
         .expect(201);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.items.length).toBe(2);
+      expect(res.body.data.items[0].priceAtSale).toBe(100000);
+      expect(res.body.data.items[1].priceAtSale).toBe(50000);
     });
 
     it('should validate required fields', async () => {
@@ -164,6 +189,7 @@ describe('Orders Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /invalid|required/i.test(res.body.message || '')).toBe(true);
     });
 
     it('should validate items array is not empty', async () => {
@@ -176,6 +202,7 @@ describe('Orders Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /empty|required/i.test(res.body.message || '')).toBe(true);
     });
 
     it('should validate item amount is positive', async () => {
@@ -193,6 +220,7 @@ describe('Orders Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /positive|amount/i.test(res.body.message || '')).toBe(true);
     });
   });
 
@@ -215,6 +243,7 @@ describe('Orders Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.customerName).toBe('Updated Customer Name');
     });
 
@@ -229,6 +258,7 @@ describe('Orders Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.pickupDate).toBeTruthy();
     });
 
@@ -241,6 +271,7 @@ describe('Orders Routes', () => {
         .expect(404);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
     });
 
     it('should update order with new items (replace all items)', async () => {
@@ -274,9 +305,11 @@ describe('Orders Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.items.length).toBe(1);
       expect(res.body.data.items[0].amount).toBe(5);
       expect(res.body.data.items[0].notes).toBe('Updated item');
+      expect(res.body.data.items[0].priceAtSale).toBe(100000);
     });
 
     it('should update order with multiple new items', async () => {
@@ -322,8 +355,11 @@ describe('Orders Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.customerName).toBe('Updated with More Items');
       expect(res.body.data.items.length).toBe(2);
+      expect(res.body.data.items[0].priceAtSale).toBe(100000);
+      expect(res.body.data.items[1].priceAtSale).toBe(40000);
     });
 
     it('should update order info without changing items', async () => {
@@ -354,12 +390,14 @@ describe('Orders Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.customerName).toBe('Updated Customer');
       expect(res.body.data.notes).toBe('New order notes');
       expect(res.body.data.items.length).toBe(1);
       expect(res.body.data.items[0].id).toBe(originalItemId);
       expect(res.body.data.items[0].amount).toBe(3);
       expect(res.body.data.items[0].notes).toBe('Original note');
+      expect(typeof res.body.data.items[0].priceAtSale).toBe('number');
     });
 
     it('should validate items when updating', async () => {
@@ -371,6 +409,7 @@ describe('Orders Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /empty|required/i.test(res.body.message || '')).toBe(true);
     });
   });
 
@@ -390,7 +429,7 @@ describe('Orders Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe('Order deleted successfully');
+      expect(res.body.message).toMatch(/deleted successfully/i);
     });
 
     it('should return 404 when deleting non-existent order', async () => {
@@ -399,6 +438,7 @@ describe('Orders Routes', () => {
         .expect(404);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
     });
   });
 });

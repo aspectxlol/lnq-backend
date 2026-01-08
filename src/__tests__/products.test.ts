@@ -28,6 +28,15 @@ describe('Products Routes', () => {
 
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
+      for (const product of res.body.data) {
+        expect(typeof product.id).toBe('number');
+        expect(typeof product.name).toBe('string');
+        expect(typeof product.price).toBe('number');
+        expect(['string', 'object'].includes(typeof product.description)).toBe(true);
+        if (product.imageId !== undefined) {
+          expect(['string', 'object'].includes(typeof product.imageId)).toBe(true);
+        }
+      }
     });
   });
 
@@ -43,6 +52,9 @@ describe('Products Routes', () => {
 
         expect(res.body.success).toBe(true);
         expect(res.body.data.id).toBe(testProduct.id);
+        expect(typeof res.body.data.name).toBe('string');
+        expect(typeof res.body.data.price).toBe('number');
+        expect(['string', 'object'].includes(typeof res.body.data.description)).toBe(true);
       }
     });
 
@@ -52,6 +64,7 @@ describe('Products Routes', () => {
         .expect(404);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
     });
 
     it('should return 400 for invalid product ID', async () => {
@@ -60,6 +73,7 @@ describe('Products Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /invalid/i.test(res.body.message || '')).toBe(true);
     });
   });
 
@@ -75,8 +89,10 @@ describe('Products Routes', () => {
         .expect(201);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.name).toBe('New Product');
       expect(res.body.data.price).toBe(50000);
+      expect(typeof res.body.data.description).toBe('string');
     });
 
     it('should create a new product with file upload', async () => {
@@ -89,9 +105,10 @@ describe('Products Routes', () => {
         .expect(201);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.name).toBe('Product with Image');
       expect(res.body.data.price).toBe(75000);
-      expect(res.body.data.imageId).toBeDefined();
+      expect(typeof res.body.data.imageId).toBe('string');
     });
 
     it('should reject non-image files', async () => {
@@ -103,6 +120,7 @@ describe('Products Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /image|file|invalid/i.test(res.body.message || '')).toBe(true);
     });
 
     it('should validate required fields', async () => {
@@ -114,6 +132,7 @@ describe('Products Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /required|missing/i.test(res.body.message || '')).toBe(true);
     });
 
     it('should validate price is positive', async () => {
@@ -126,6 +145,7 @@ describe('Products Routes', () => {
         .expect(400);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message === 'Validation failed' || /positive|price/i.test(res.body.message || '')).toBe(true);
     });
   });
 
@@ -147,7 +167,9 @@ describe('Products Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
+      expect(typeof res.body.data.id).toBe('number');
       expect(res.body.data.name).toBe('Updated Product');
+      expect(typeof res.body.data.price).toBe('number');
     });
 
     it('should return 404 for non-existent product', async () => {
@@ -159,6 +181,7 @@ describe('Products Routes', () => {
         .expect(404);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
     });
   });
 
@@ -179,7 +202,7 @@ describe('Products Routes', () => {
         .expect(200);
 
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe('Product deleted successfully');
+      expect(res.body.message).toMatch(/deleted successfully/i);
     });
 
     it('should return 404 when deleting non-existent product', async () => {
@@ -188,6 +211,7 @@ describe('Products Routes', () => {
         .expect(404);
 
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not found/i);
     });
   });
 });

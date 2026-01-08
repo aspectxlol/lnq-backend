@@ -256,6 +256,9 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  *                       type: integer
  *                     notes:
  *                       type: string
+ *                     priceAtSale:
+ *                       type: integer
+ *                       description: Price at sale (optional, overrides current product price)
  *           example:
  *             notes: "Please call when ready"
  *             customerName: "Alice"
@@ -302,12 +305,21 @@ router.post(
       const items = await db
         .insert(orderItems)
         .values(
-          data.items.map((item) => ({
-            orderId,
-            productId: item.productId,
-            amount: item.amount,
-            notes: item.notes,
-          }))
+          await Promise.all(
+            data.items.map(async (item) => {
+              // Get current price from products table
+              const product = await db.query.products.findFirst({
+                where: eq(products.id, item.productId),
+              });
+              return {
+                orderId,
+                productId: item.productId,
+                amount: item.amount,
+                notes: item.notes,
+                priceAtSale: product?.price ?? null,
+              };
+            })
+          )
         )
         .returning();
 
@@ -445,16 +457,30 @@ router.put(
         // Delete existing items
         await db.delete(orderItems).where(eq(orderItems.orderId, id));
 
-        // Insert new items
+        // Insert new items, allow priceAtSale override
         await db
           .insert(orderItems)
           .values(
-            data.items.map((item) => ({
-              orderId: id,
-              productId: item.productId,
-              amount: item.amount,
-              notes: item.notes,
-            }))
+            await Promise.all(
+              data.items.map(async (item) => {
+                let priceAtSale;
+                if ('priceAtSale' in item && typeof item.priceAtSale === 'number') {
+                  priceAtSale = item.priceAtSale;
+                } else {
+                  const product = await db.query.products.findFirst({
+                    where: eq(products.id, item.productId),
+                  });
+                  priceAtSale = product?.price ?? null;
+                }
+                return {
+                  orderId: id,
+                  productId: item.productId,
+                  amount: item.amount,
+                  notes: item.notes,
+                  priceAtSale,
+                };
+              })
+            )
           );
       }
 

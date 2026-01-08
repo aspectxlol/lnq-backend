@@ -49,12 +49,15 @@ describe('Printer Routes', () => {
       orderId,
       productId: testProductId,
       amount: 2,
+      priceAtSale: 12000,
     });
 
     const res = await request(app).post(`/api/printer/orders/${orderId}/print`).expect(200);
 
     expect(res.body.success).toBe(true);
+    expect(typeof res.body.data.orderId).toBe('number');
     expect(res.body.data.orderId).toBe(orderId);
+    expect(typeof res.body.data).toBe('object');
     expect(writeToPrinterDevice).toHaveBeenCalled();
   });
 });
