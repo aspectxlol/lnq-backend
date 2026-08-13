@@ -2,6 +2,7 @@
 # LNQ Backend
 
 > **Archived**
+> 
 > This repository is no longer actively maintained and will be archived.
 > Development is continuing in a new implementation at [`aspectxlol/lnq`](https://github.com/aspectxlol/lnq).
 > Please refer to the new repository for the latest implementation and ongoing development.
