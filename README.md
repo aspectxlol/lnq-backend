@@ -1,6 +1,8 @@
 
 # LNQ Backend
+
 > **Archived** > > This repository is no longer actively maintained and will be archived. > > Development is continuing in a new implementation at [`aspectxlol/lnq`](https://github.com/aspectxlol/lnq). > > Please refer to the new repository for the latest implementation and ongoing development.
+
 LNQ Backend is a Node.js/TypeScript REST API for e-commerce, featuring product, order, and image management, with PostgreSQL and MinIO integration. It supports local development, Dockerized deployment, and includes a full OpenAPI spec.
 
 ---
